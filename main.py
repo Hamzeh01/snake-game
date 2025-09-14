@@ -51,10 +51,17 @@ def show_mode_selection():
 
 def main():
     """Run the main game."""
-    selected_mode = show_mode_selection()
-    game = Game()
-    game.reset_game(selected_mode)
-    game.run()
+    while True:
+        selected_mode = show_mode_selection()
+        if selected_mode is None:  # User closed the mode selection
+            break
+            
+        game = Game()
+        game.reset_game(selected_mode)
+        return_to_menu = game.run()
+        
+        if not return_to_menu:  # User chose to quit instead of return to menu
+            break
 
 
 if __name__ == "__main__":

@@ -69,8 +69,22 @@ class Food:
         self.position = position
 
     @classmethod
-    def spawn(cls, grid_size: Tuple[int, int], snake_body: List[Point]):
-        """Spawn food at a random position that doesn't overlap with the snake."""
+    def spawn(cls, grid_size: Tuple[int, int], snake_body: List[Point], obstacles=None):
+        """Spawn food at a random position that doesn't overlap with the snake or obstacles."""
+        if obstacles is None:
+            obstacles = set()
+        
+        max_attempts = 100
+        attempts = 0
+        while attempts < max_attempts:
+            position = Point(
+                random.randint(0, grid_size[0] - 1), random.randint(0, grid_size[1] - 1)
+            )
+            if position not in snake_body and (position.x, position.y) not in obstacles:
+                return cls(position)
+            attempts += 1
+        
+        # Fallback: if we can't find a spot, just place it anywhere not on the snake
         while True:
             position = Point(
                 random.randint(0, grid_size[0] - 1), random.randint(0, grid_size[1] - 1)
