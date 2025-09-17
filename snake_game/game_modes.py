@@ -2,196 +2,255 @@
 This module contains different game modes and their specific rules.
 """
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 import random
+import time
 from .entities import Snake, Food, Point
 
+
+# Game mode constants
+DEFAULT_TIME_LIMIT = 30
+CHALLENGE_SPEED_INCREMENT = 0.15
+OBSTACLE_FREQUENCY = 3
+
+
 class GameMode(ABC):
-    """Abstract base class for different game modes."""
+    """Abstract base class for different game modes with enhanced structure."""
 
-    def __init__(self, grid_size):
+    def __init__(self, grid_size: Tuple[int, int]) -> None:
         """Initialize the game mode."""
-        self.grid_size = grid_size
-        self.score = 0
-        self.game_over = False
+        self._grid_size = grid_size
+        self._score = 0
+        self._game_over = False
 
-    def wrap_around(self, snake: Snake):
+    @property
+    def grid_size(self) -> Tuple[int, int]:
+        """Get the grid size."""
+        return self._grid_size
+
+    @property
+    def score(self) -> int:
+        """Get the current score."""
+        return self._score
+
+    @property
+    def game_over(self) -> bool:
+        """Check if the game is over."""
+        return self._game_over
+
+    @game_over.setter
+    def game_over(self, value: bool) -> None:
+        """Set the game over state."""
+        self._game_over = value
+
+    def _wrap_around_movement(self, snake: Snake) -> None:
         """Handle wraparound movement for the snake."""
         head = snake.head
-        head.x = head.x % self.grid_size[0]
-        head.y = head.y % self.grid_size[1]
+        # Create a new head position with wrapped coordinates
+        wrapped_x = head.x % self._grid_size[0]
+        wrapped_y = head.y % self._grid_size[1]
+        
+        # Update the head position directly in the snake's body
+        snake._body[0] = Point(wrapped_x, wrapped_y)
+
+    def _increment_score(self, amount: int = 1) -> None:
+        """Increment the score by the specified amount."""
+        self._score += amount
 
     @abstractmethod
-    def update(self, snake: Snake, food: Food) -> tuple[bool, Optional[str]]:
+    def update(self, snake: Snake, food: Food) -> Tuple[bool, Optional[str]]:
         """Update game state and return if the game should continue."""
-        raise NotImplementedError
+        pass
 
     @abstractmethod
-    def get_score(self) -> int:
-        """Return the current score."""
-        raise NotImplementedError
-
     def get_mode_info(self) -> str:
         """Return mode-specific information to display."""
-        return ""
+        pass
 
 
 class ClassicMode(GameMode):
     """Classic snake game mode - grow longer with each food eaten, with wraparound movement."""
 
-    def update(self, snake: Snake, food: Food) -> tuple[bool, Optional[str]]:
+    def update(self, snake: Snake, food: Food) -> Tuple[bool, Optional[str]]:
         """Update classic mode state."""
         # Handle wraparound movement
-        self.wrap_around(snake)
+        self._wrap_around_movement(snake)
 
         # Check self collision (only collision that ends the game in classic mode)
-        if snake.check_collision(snake.head):
+        if snake.has_self_collision():
             return False, "Self collision!"
 
         # Check food collision
         if snake.head == food.position:
-            self.score += 1
+            self._increment_score()
             return True, "Food eaten!"
 
         return True, None
 
-    def get_score(self) -> int:
-        """Return the current score."""
-        return self.score
-
     def get_mode_info(self) -> str:
         """Return mode-specific information."""
-        return f"Classic Mode - Score: {self.score}"
+        return f"Classic Mode - Score: {self._score}"
 
 
 class TimedMode(GameMode):
     """Timed mode - collect as much food as possible within the time limit."""
 
-    def __init__(self, grid_size, time_limit: int = 30):
+    def __init__(self, grid_size: Tuple[int, int], time_limit: int = DEFAULT_TIME_LIMIT) -> None:
         """Initialize timed mode with a time limit in seconds."""
         super().__init__(grid_size)
-        self.time_limit = time_limit
-        self.time_remaining = time_limit
-        self.last_update = None
-        self.bonus_points = 0
+        self._time_limit = time_limit
+        self._time_remaining = float(time_limit)
+        self._last_update: Optional[float] = None
+        self._bonus_points = 0
 
-    def update(self, snake: Snake, food: Food) -> tuple[bool, Optional[str]]:
-        """Update timed mode state."""
-        import time
+    @property
+    def time_remaining(self) -> float:
+        """Get the remaining time."""
+        return self._time_remaining
 
+    @property
+    def bonus_points(self) -> int:
+        """Get the bonus points earned."""
+        return self._bonus_points
+
+    def _update_timer(self) -> None:
+        """Update the game timer."""
         current_time = time.time()
 
-        if self.last_update is None:
-            self.last_update = current_time
+        if self._last_update is None:
+            self._last_update = current_time
         else:
-            elapsed = current_time - self.last_update
-            self.time_remaining = max(0, self.time_remaining - elapsed)
-            self.last_update = current_time
+            elapsed = current_time - self._last_update
+            self._time_remaining = max(0, self._time_remaining - elapsed)
+            self._last_update = current_time
 
-        if self.time_remaining <= 0:
+    def _calculate_time_bonus(self) -> int:
+        """Calculate bonus points based on remaining time."""
+        return int((self._time_remaining / self._time_limit) * 10)
+
+    def update(self, snake: Snake, food: Food) -> Tuple[bool, Optional[str]]:
+        """Update timed mode state."""
+        self._update_timer()
+
+        if self._time_remaining <= 0:
             return False, "Time's up!"
 
         # Handle wraparound movement
-        self.wrap_around(snake)
+        self._wrap_around_movement(snake)
 
         # Check self collision
-        if snake.check_collision(snake.head):
+        if snake.has_self_collision():
             return False, "Self collision!"
 
         # Check food collision
         if snake.head == food.position:
             # Base points plus bonus for remaining time
-            time_bonus = int(self.time_remaining / self.time_limit * 10)
-            self.score += 1 + time_bonus
-            self.bonus_points += time_bonus
-            return True, f"Food eaten! +{1 + time_bonus} points!"
+            time_bonus = self._calculate_time_bonus()
+            total_points = 1 + time_bonus
+            self._increment_score(total_points)
+            self._bonus_points += time_bonus
+            return True, f"Food eaten! +{total_points} points!"
 
         return True, None
 
-    def get_score(self) -> int:
-        """Return the current score."""
-        return self.score
-
     def get_mode_info(self) -> str:
         """Return mode-specific information."""
-        return f"Timed Mode - Score: {self.score} | Time: {int(self.time_remaining)}s"
-
-    def get_score(self) -> int:
-        """Return the current score."""
-        return self.score
+        return f"Timed Mode - Score: {self._score} | Time: {int(self._time_remaining)}s"
 
 
 class ChallengeMode(GameMode):
     """Challenge mode - no wraparound, obstacles appear, and speed increases."""
 
-    def __init__(self, grid_size):
+    def __init__(self, grid_size: Tuple[int, int]) -> None:
         """Initialize challenge mode."""
         super().__init__(grid_size)
-        self.speed_multiplier = 1.0
-        self.obstacles = set()
-        self.foods_eaten = 0
+        self._speed_multiplier = 1.0
+        self._obstacles: set = set()
+        self._foods_eaten = 0
 
-    def _add_obstacle(self, snake_body):
+    @property
+    def speed_multiplier(self) -> float:
+        """Get the current speed multiplier."""
+        return self._speed_multiplier
+
+    @property
+    def obstacles(self) -> set:
+        """Get the current obstacles."""
+        return self._obstacles.copy()
+
+    def get_obstacles(self) -> set:
+        """Return the current obstacles (for backward compatibility)."""
+        return self._obstacles
+
+    def get_speed(self) -> float:
+        """Return the current speed multiplier (for backward compatibility)."""
+        return self._speed_multiplier
+
+    def _is_wall_collision(self, snake: Snake) -> bool:
+        """Check if snake collided with walls."""
+        head = snake.head
+        return (
+            head.x < 0 or head.x >= self._grid_size[0] or
+            head.y < 0 or head.y >= self._grid_size[1]
+        )
+
+    def _is_obstacle_collision(self, snake: Snake) -> bool:
+        """Check if snake collided with obstacles."""
+        head_pos = (snake.head.x, snake.head.y)
+        return head_pos in self._obstacles
+
+    def _add_obstacle(self, snake_body: list) -> None:
         """Add a random obstacle to the game."""
-        max_attempts = 50
-        attempts = 0
-        while attempts < max_attempts:
-            obstacle_pos = Point(
-                random.randint(0, self.grid_size[0] - 1),
-                random.randint(0, self.grid_size[1] - 1)
-            )
-            # Ensure obstacle doesn't spawn on snake
-            if obstacle_pos not in snake_body and obstacle_pos not in self.obstacles:
-                self.obstacles.add((obstacle_pos.x, obstacle_pos.y))
-                break
-            attempts += 1
+        snake_positions = {(point.x, point.y) for point in snake_body}
+        available_positions = []
+        
+        # Find all available positions
+        for x in range(self._grid_size[0]):
+            for y in range(self._grid_size[1]):
+                pos = (x, y)
+                if pos not in snake_positions and pos not in self._obstacles:
+                    available_positions.append(pos)
+        
+        # Add obstacle if position available
+        if available_positions:
+            obstacle_pos = random.choice(available_positions)
+            self._obstacles.add(obstacle_pos)
 
-    def update(self, snake: Snake, food: Food) -> tuple[bool, Optional[str]]:
+    def _increase_difficulty(self, snake_body: list) -> None:
+        """Increase game difficulty by adding speed and obstacles."""
+        self._foods_eaten += 1
+        self._speed_multiplier += CHALLENGE_SPEED_INCREMENT
+        
+        # Add obstacle every OBSTACLE_FREQUENCY foods eaten
+        if self._foods_eaten % OBSTACLE_FREQUENCY == 0:
+            self._add_obstacle(snake_body)
+
+    def update(self, snake: Snake, food: Food) -> Tuple[bool, Optional[str]]:
         """Update challenge mode state."""
         # NO wraparound in challenge mode - check wall collision
-        if (
-            snake.head.x < 0
-            or snake.head.x >= self.grid_size[0]
-            or snake.head.y < 0
-            or snake.head.y >= self.grid_size[1]
-        ):
+        if self._is_wall_collision(snake):
             return False, "Wall collision!"
 
         # Check self collision
-        if snake.check_collision(snake.head):
+        if snake.has_self_collision():
             return False, "Self collision!"
 
         # Check obstacle collision
-        if (snake.head.x, snake.head.y) in self.obstacles:
+        if self._is_obstacle_collision(snake):
             return False, "Obstacle collision!"
 
         # Check food collision
         if snake.head == food.position:
-            self.score += 1
-            self.foods_eaten += 1
-            self.speed_multiplier += 0.15  # Increase speed by 15% for each food eaten
-            
-            # Add obstacle every 3 foods eaten
-            if self.foods_eaten % 3 == 0:
-                self._add_obstacle(snake.body)
-            
+            self._increment_score()
+            self._increase_difficulty(snake.body)
             return True, "Food eaten!"
 
         return True, None
 
-    def get_score(self) -> int:
-        """Return the current score."""
-        return self.score
-
-    def get_speed(self) -> float:
-        """Return the current speed multiplier."""
-        return self.speed_multiplier
-
     def get_mode_info(self) -> str:
         """Return mode-specific information."""
-        return f"Challenge Mode - Score: {self.score} | Speed: {self.speed_multiplier:.1f}x | Obstacles: {len(self.obstacles)}"
-
-    def get_obstacles(self):
-        """Return the current obstacles."""
-        return self.obstacles
+        return (f"Challenge Mode - Score: {self._score} | "
+                f"Speed: {self._speed_multiplier:.1f}x | "
+                f"Obstacles: {len(self._obstacles)}")

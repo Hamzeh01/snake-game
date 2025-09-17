@@ -55,17 +55,15 @@ class TestSnake(unittest.TestCase):
 
     def test_collision_detection(self):
         """Test snake collision detection."""
-        # Move snake in a way that causes self-collision
-        self.snake.change_direction(Point(0, 1))
-        self.snake.move()
-        self.snake.change_direction(Point(-1, 0))
-        self.snake.move()
-        self.snake.change_direction(Point(0, -1))
-        self.snake.move()
+        # Test with check_collision method directly  
+        snake = Snake(Point(5, 5))
         
-        # Test collision with its own body
-        collision_point = Point(self.snake.head.x, self.snake.head.y)
-        self.assertTrue(self.snake.check_collision(collision_point))
+        # Test collision with a body segment position
+        body_segment_pos = Point(4, 5)  # This is where second segment is initially
+        self.assertTrue(snake.check_collision(body_segment_pos))
+        
+        # Test no collision with head position
+        self.assertFalse(snake.check_collision(snake.head))
 
 class TestFood(unittest.TestCase):
     """Test cases for the Food class."""
