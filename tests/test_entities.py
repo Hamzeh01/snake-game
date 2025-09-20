@@ -1,8 +1,11 @@
 """
 Test cases for the snake game entities.
 """
+
 import unittest
-from snake_game.entities import Point, Snake, Food
+
+from snake_game.entities import Food, Point, Snake
+
 
 class TestPoint(unittest.TestCase):
     """Test cases for the Point class."""
@@ -12,9 +15,10 @@ class TestPoint(unittest.TestCase):
         p1 = Point(1, 2)
         p2 = Point(1, 2)
         p3 = Point(2, 1)
-        
+
         self.assertEqual(p1, p2)
         self.assertNotEqual(p1, p3)
+
 
 class TestSnake(unittest.TestCase):
     """Test cases for the Snake class."""
@@ -34,7 +38,7 @@ class TestSnake(unittest.TestCase):
         """Test snake movement."""
         initial_head = self.snake.head
         self.snake.move()
-        
+
         # Test normal movement
         self.assertEqual(self.snake.head, Point(initial_head.x + 1, initial_head.y))
         self.assertEqual(len(self.snake.body), 3)
@@ -55,15 +59,16 @@ class TestSnake(unittest.TestCase):
 
     def test_collision_detection(self):
         """Test snake collision detection."""
-        # Test with check_collision method directly  
+        # Test with check_collision method directly
         snake = Snake(Point(5, 5))
-        
+
         # Test collision with a body segment position
         body_segment_pos = Point(4, 5)  # This is where second segment is initially
         self.assertTrue(snake.check_collision(body_segment_pos))
-        
+
         # Test no collision with head position
         self.assertFalse(snake.check_collision(snake.head))
+
 
 class TestFood(unittest.TestCase):
     """Test cases for the Food class."""
@@ -72,15 +77,16 @@ class TestFood(unittest.TestCase):
         """Test food spawning."""
         grid_size = (10, 10)
         snake_body = [Point(5, 5), Point(5, 6), Point(5, 7)]
-        
+
         food = Food.spawn(grid_size, snake_body)
-        
+
         # Test food position is within grid
         self.assertTrue(0 <= food.position.x < grid_size[0])
         self.assertTrue(0 <= food.position.y < grid_size[1])
-        
+
         # Test food doesn't spawn on snake
         self.assertNotIn(food.position, snake_body)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

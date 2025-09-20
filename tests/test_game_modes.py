@@ -1,9 +1,12 @@
 """
 Test cases for different game modes.
 """
+
 import unittest
-from snake_game.entities import Snake, Food, Point
-from snake_game.game_modes import ClassicMode, TimedMode, ChallengeMode
+
+from snake_game.entities import Food, Point, Snake
+from snake_game.game_modes import ChallengeMode, ClassicMode, TimedMode
+
 
 class TestClassicMode(unittest.TestCase):
     """Test cases for the ClassicMode class."""
@@ -21,7 +24,7 @@ class TestClassicMode(unittest.TestCase):
         # Move snake to wall position and verify wraparound behavior
         wall_snake = Snake(Point(-1, 5))
         continue_game, _ = self.mode.update(wall_snake, self.food)
-        
+
         # Should continue game and wrap around
         self.assertTrue(continue_game)
         # After wraparound, snake head should be at right edge
@@ -45,6 +48,7 @@ class TestClassicMode(unittest.TestCase):
         self.assertEqual(message, "Food eaten!")
         self.assertEqual(self.mode.score, 1)
 
+
 class TestTimedMode(unittest.TestCase):
     """Test cases for the TimedMode class."""
 
@@ -63,6 +67,7 @@ class TestTimedMode(unittest.TestCase):
         self.assertFalse(continue_game)
         self.assertEqual(message, "Time's up!")
 
+
 class TestChallengeMode(unittest.TestCase):
     """Test cases for the ChallengeMode class."""
 
@@ -76,13 +81,14 @@ class TestChallengeMode(unittest.TestCase):
     def test_speed_increase(self):
         """Test speed increase after eating food."""
         initial_speed = self.mode.get_speed()
-        
+
         # Simulate eating food
         food_snake = Snake(self.food.position)
         self.mode.update(food_snake, self.food)
-        
+
         # Check speed increase
         self.assertGreater(self.mode.get_speed(), initial_speed)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

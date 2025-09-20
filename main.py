@@ -3,12 +3,14 @@ Main entry point for the Snake Game with enhanced user interface.
 """
 
 from __future__ import annotations
-import sys
-from typing import Optional, Type, Dict, Tuple
-import pygame
-from snake_game.game import Game
-from snake_game.game_modes import GameMode, ClassicMode, TimedMode, ChallengeMode
 
+import sys
+from typing import Dict, Optional, Tuple, Type
+
+import pygame
+
+from snake_game.game import Game
+from snake_game.game_modes import ChallengeMode, ClassicMode, GameMode, TimedMode
 
 # UI Configuration Constants
 WINDOW_SIZE = (800, 600)
@@ -53,10 +55,10 @@ class ModeSelectionMenu:
         for i, (mode_name, _) in self._modes.items():
             color = HIGHLIGHT_COLOR if i == self._selected_index else TEXT_COLOR
             text_surface = self._font.render(mode_name, True, color)
-            
+
             text_x = WINDOW_SIZE[0] // 2 - text_surface.get_width() // 2
             text_y = MENU_START_Y + i * MENU_ITEM_HEIGHT
-            
+
             self._screen.blit(text_surface, (text_x, text_y))
 
     def _draw_instructions(self) -> None:
@@ -64,12 +66,12 @@ class ModeSelectionMenu:
         instructions = [
             "Use UP/DOWN arrows to navigate",
             "Press ENTER to select",
-            "Press ESC to quit"
+            "Press ESC to quit",
         ]
-        
+
         start_y = MENU_START_Y + len(self._modes) * MENU_ITEM_HEIGHT + 50
         font_small = pygame.font.Font(None, 24)
-        
+
         for i, instruction in enumerate(instructions):
             text_surface = font_small.render(instruction, True, TEXT_COLOR)
             text_x = WINDOW_SIZE[0] // 2 - text_surface.get_width() // 2
@@ -108,20 +110,20 @@ class ModeSelectionMenu:
         """Show the mode selection menu and return the selected mode."""
         while self._running:
             self._screen.fill(BACKGROUND_COLOR)
-            
+
             self._draw_title()
             self._draw_mode_options()
             self._draw_instructions()
-            
+
             pygame.display.flip()
-            
+
             result = self._handle_events()
             if result != "continue":
                 # Don't quit pygame here, just return the result
                 return result
-                
+
             self._clock.tick(60)  # 60 FPS for smooth menu experience
-        
+
         # Don't quit pygame here either
         return None
 
@@ -136,26 +138,27 @@ def main() -> None:
     """Run the main game with enhanced error handling and flow control."""
     # Initialize pygame once at the start
     pygame.init()
-    
+
     try:
         while True:
             selected_mode = show_mode_selection()
             if selected_mode is None:  # User closed the mode selection or quit
                 break
-                
+
             # Initialize and run the game
             game = Game()
             game.reset_game(selected_mode)
             return_to_menu = game.run()
-            
+
             if not return_to_menu:  # User chose to quit instead of return to menu
                 break
-                
+
     except KeyboardInterrupt:
         print("\nGame interrupted by user.")
     except Exception as e:
         print(f"An error occurred: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         pygame.quit()

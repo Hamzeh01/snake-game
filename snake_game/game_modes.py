@@ -3,12 +3,13 @@ This module contains different game modes and their specific rules.
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+
 import random
 import time
-from .entities import Snake, Food, Point
+from abc import ABC, abstractmethod
+from typing import Optional, Tuple
 
+from .entities import Food, Point, Snake
 
 # Game mode constants
 DEFAULT_TIME_LIMIT = 30
@@ -51,7 +52,7 @@ class GameMode(ABC):
         # Create a new head position with wrapped coordinates
         wrapped_x = head.x % self._grid_size[0]
         wrapped_y = head.y % self._grid_size[1]
-        
+
         # Update the head position directly in the snake's body
         snake._body[0] = Point(wrapped_x, wrapped_y)
 
@@ -97,7 +98,9 @@ class ClassicMode(GameMode):
 class TimedMode(GameMode):
     """Timed mode - collect as much food as possible within the time limit."""
 
-    def __init__(self, grid_size: Tuple[int, int], time_limit: int = DEFAULT_TIME_LIMIT) -> None:
+    def __init__(
+        self, grid_size: Tuple[int, int], time_limit: int = DEFAULT_TIME_LIMIT
+    ) -> None:
         """Initialize timed mode with a time limit in seconds."""
         super().__init__(grid_size)
         self._time_limit = time_limit
@@ -192,8 +195,10 @@ class ChallengeMode(GameMode):
         """Check if snake collided with walls."""
         head = snake.head
         return (
-            head.x < 0 or head.x >= self._grid_size[0] or
-            head.y < 0 or head.y >= self._grid_size[1]
+            head.x < 0
+            or head.x >= self._grid_size[0]
+            or head.y < 0
+            or head.y >= self._grid_size[1]
         )
 
     def _is_obstacle_collision(self, snake: Snake) -> bool:
@@ -205,14 +210,14 @@ class ChallengeMode(GameMode):
         """Add a random obstacle to the game."""
         snake_positions = {(point.x, point.y) for point in snake_body}
         available_positions = []
-        
+
         # Find all available positions
         for x in range(self._grid_size[0]):
             for y in range(self._grid_size[1]):
                 pos = (x, y)
                 if pos not in snake_positions and pos not in self._obstacles:
                     available_positions.append(pos)
-        
+
         # Add obstacle if position available
         if available_positions:
             obstacle_pos = random.choice(available_positions)
@@ -222,7 +227,7 @@ class ChallengeMode(GameMode):
         """Increase game difficulty by adding speed and obstacles."""
         self._foods_eaten += 1
         self._speed_multiplier += CHALLENGE_SPEED_INCREMENT
-        
+
         # Add obstacle every OBSTACLE_FREQUENCY foods eaten
         if self._foods_eaten % OBSTACLE_FREQUENCY == 0:
             self._add_obstacle(snake_body)
@@ -251,6 +256,8 @@ class ChallengeMode(GameMode):
 
     def get_mode_info(self) -> str:
         """Return mode-specific information."""
-        return (f"Challenge Mode - Score: {self._score} | "
-                f"Speed: {self._speed_multiplier:.1f}x | "
-                f"Obstacles: {len(self._obstacles)}")
+        return (
+            f"Challenge Mode - Score: {self._score} | "
+            f"Speed: {self._speed_multiplier:.1f}x | "
+            f"Obstacles: {len(self._obstacles)}"
+        )
